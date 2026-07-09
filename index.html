@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TextPurify Studio Pro v3.1</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <style>
+        /* ── custom overrides & glassmorphism ── */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #090d16;
+            --bg-secondary: rgba(18, 26, 40, 0.65);
+            --text-primary: #e4edf5;
+            --text-secondary: #8699b9;
+            --border-color: rgba(255, 255, 255, 0.06);
+            --shadow-color: rgba(0, 0, 0, 0.7);
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.30);
+            --card-bg: rgba(18, 26, 40, 0.65);
+            --input-bg: rgba(255, 255, 255, 0.03);
+            --hover-bg: rgba(255, 255, 255, 0.07);
+            --code-bg: rgba(0, 0, 0, 0.35);
+            --blockquote-bg: rgba(139, 92, 246, 0.05);
+            --table-header-bg: rgba(255, 255, 255, 0.04);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f0f4ff;
+            --bg-secondary: rgba(255, 255, 255, 0.85);
+            --text-primary: #1a1f2e;
+            --text-secondary: #5a6a85;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --accent: #7c3aed;
+            --accent-glow: rgba(124, 58, 237, 0.15);
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --input-bg: rgba(0, 0, 0, 0.04);
+            --hover-bg: rgba(0, 0, 0, 0.05);
+            --code-bg: rgba(0, 0, 0, 0.06);
+            --blockquote-bg: rgba(124, 58, 237, 0.04);
+            --table-header-bg: rgba(0, 0, 0, 0.04);
+        }
+
+        body {
+            background: var(--bg-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+            color: var(--text-primary);
+        }
+
+        /* ambient glow */
+        .glow {
+            position: fixed;
+            top: -120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 700px;
+            height: 400px;
+            background: radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 50%;
+            filter: blur(60px);
+            transition: background 0.3s;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* glass cards */
+        .glass {
+            background: var(--card-bg);
+            backdrop-filter: blur(18px) saturate(1.2);
+            -webkit-backdrop-filter: blur(18px) saturate(1.2);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px -12px var(--shadow-color), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .glass-light {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(10px) saturate(1.1);
+            -webkit-backdrop-filter: blur(10px) saturate(1.1);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        /* editor / terminal style */
+        .mono-editor {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+            background: transparent;
+            resize: none;
+            outline: none;
+            border: none;
+            width: 100%;
+            height: 100%;
+            min-height: 280px;
+            padding: 16px 18px;
+            tab-size: 2;
+            transition: color 0.3s;
+        }
+
+        .mono-editor::placeholder {
+            color: var(--text-secondary);
+            font-weight: 350;
+            letter-spacing: 0.2px;
+        }
+
+        .mono-editor:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: -2px;
+            border-radius: 12px;
+        }
+
+        /* scrollbar */
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .scrollable::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 12px;
+        }
+        .scrollable::-webkit-scrollbar-thumb:hover {
+            background: #4b5a74;
+        }
+
+        [data-theme="light"] .scrollable::-webkit-scrollbar-thumb {
+            background: #c0c8d8;
+        }
+        [data-theme="light"] .scrollable::-webkit-scrollbar-thumb:hover {
+            background: #a0a8b8;
+        }
+
+        .scrollable {
+            scroll-behavior: smooth;
+            overflow: auto;
+        }
+
+        /* toggle buttons */
+        .seg-toggle {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 40px;
+            padding: 4px;
+            border: 1px solid var(--border-color);
+            gap: 2px;
+        }
+        .seg-toggle button {
+            background: transparent;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .seg-toggle button.active {
+            background: var(--accent);
+            color: #f0f3fa;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+        }
+        .seg-toggle button:hover:not(.active) {
+            color: var(--text-primary);
+            background: var(--hover-bg);
+        }
+
+        /* transform chips */
+        .chip-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 14px;
+            align-items: center;
+        }
+        .chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            font-weight: 450;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 10px 4px 8px;
+            border-radius: 40px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            transition: all 0.15s;
+        }
+        .chip:hover {
+            background: var(--hover-bg);
+        }
+        .chip input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        /* metric cards */
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+            transition: color 0.3s;
+        }
+        .metric-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .drag-over {
+            border: 2px dashed var(--accent) !important;
+            background: rgba(139, 92, 246, 0.08) !important;
+            transition: all 0.15s;
+        }
+
+        /* markdown preview styles - FIXED for light mode */
+        .markdown-body {
+            color: var(--text-primary);
+            padding: 16px 18px;
+            line-height: 1.7;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+            background: transparent;
+        }
+        .markdown-body h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0.8rem 0 0.4rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3rem;
+        }
+        .markdown-body h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 0.7rem 0 0.3rem;
+            color: var(--text-primary);
+        }
+        .markdown-body h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin: 0.6rem 0 0.2rem;
+            color: var(--text-primary);
+        }
+        .markdown-body p {
+            margin: 0.5rem 0;
+            color: var(--text-primary);
+        }
+        .markdown-body blockquote {
+            border-left: 4px solid var(--accent);
+            padding-left: 16px;
+            margin: 0.6rem 0;
+            color: var(--text-secondary);
+            background: var(--blockquote-bg);
+            border-radius: 0 8px 8px 0;
+        }
+        .markdown-body ul,
+        .markdown-body ol {
+            padding-left: 24px;
+            margin: 0.4rem 0;
+        }
+        .markdown-body li {
+            margin: 0.2rem 0;
+            color: var(--text-primary);
+        }
+        .markdown-body hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 1.2rem 0;
+        }
+        .markdown-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.8rem 0;
+            font-size: 0.85rem;
+        }
+        .markdown-body th,
+        .markdown-body td {
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            text-align: left;
+            color: var(--text-primary);
+        }
+        .markdown-body th {
+            background: var(--table-header-bg);
+            font-weight: 600;
+        }
+        .markdown-body code {
+            background: var(--input-bg);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+        }
+        .markdown-body pre {
+            background: var(--code-bg);
+            padding: 14px 18px;
+            border-radius: 12px;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            margin: 0.6rem 0;
+        }
+        .markdown-body pre code {
+            background: transparent;
+            padding: 0;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+        }
+        .markdown-body a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+        .markdown-body strong {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+        .markdown-body em {
+            color: var(--text-primary);
+        }
+
+        /* progress bar */
+        .progress-bar {
+            height: 3px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.15s ease;
+            border-radius: 4px;
+        }
+
+        /* modal overlay */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 560px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 40px 80px -20px var(--shadow-color);
+        }
+
+        /* keyboard shortcut badge */
+        .kbd {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 6px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+        }
+
+        /* dropdown select */
+        .dropdown-select {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            padding: 4px 14px;
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            font-weight: 450;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.15s;
+            min-width: 120px;
+        }
+        .dropdown-select:hover {
+            background: var(--hover-bg);
+        }
+        .dropdown-select:focus-visible {
+            outline: 2px solid var(--accent);
+        }
+
+        /* responsive stacking */
+        @media (max-width: 820px) {
+            .split-pane {
+                flex-direction: column !important;
+            }
+            .split-pane>div {
+                width: 100% !important;
+                min-height: 260px;
+            }
+            .glow {
+                width: 400px;
+                height: 250px;
+                top: -60px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+            .glass {
+                border-radius: 18px;
+            }
+            .metric-value {
+                font-size: 1.2rem;
+            }
+            .chip-group {
+                gap: 6px 10px;
+            }
+            .chip {
+                font-size: 0.7rem;
+                padding: 3px 8px 3px 6px;
+            }
+            .modal-content {
+                padding: 20px;
+            }
+        }
+
+        /* theme toggle */
+        .theme-toggle {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            padding: 6px 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .theme-toggle:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        /* notes list */
+        .notes-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .notes-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .notes-list-item:hover {
+            background: var(--hover-bg);
+        }
+        .notes-list-item .note-title {
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .notes-list-item .note-delete {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+        .notes-list-item .note-delete:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ambient glow -->
+    <div class="glow" aria-hidden="true"></div>
+
+    <div class="app-container">
+
+        <!-- header -->
+        <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight flex items-center gap-2" style="color: var(--text-primary);">
+                    <span class="bg-indigo-500/20 text-indigo-300 px-3 py-0.5 rounded-full text-sm font-medium">✦</span>
+                    TextPurify Studio Pro
+                </h1>
+                <p class="text-sm mt-0.5 font-light" style="color: var(--text-secondary);">sanitize · normalize · preview · export</p>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <button id="themeToggle" class="theme-toggle" title="Toggle theme">
+                    <span id="themeIcon">🌙</span> <span id="themeLabel">Dark</span>
+                </button>
+                <button id="undoBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors focus:ring-2 focus:ring-indigo-400/60 focus:outline-none" style="color: var(--text-secondary);" title="Undo (Ctrl+Z)">
+                    ↩️ <span class="hidden sm:inline">Undo</span>
+                </button>
+                <button id="redoBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors focus:ring-2 focus:ring-indigo-400/60 focus:outline-none" style="color: var(--text-secondary);" title="Redo (Ctrl+Y)">
+                    ↪️ <span class="hidden sm:inline">Redo</span>
+                </button>
+                <button id="findBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors focus:ring-2 focus:ring-indigo-400/60 focus:outline-none" style="color: var(--text-secondary);" title="Find & Replace (Ctrl+F)">
+                    🔍 <span class="hidden sm:inline">Find</span>
+                </button>
+                <button id="copyBtn" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors focus:ring-2 focus:ring-indigo-400/60 focus:outline-none" style="color: var(--text-secondary);" title="Copy sanitized text">
+                    <span id="copyLabel">📋 Copy</span>
+                </button>
+                <button id="exportBtn" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-500/20 border border-indigo-400/20 text-sm font-medium text-indigo-200 hover:bg-indigo-500/30 transition-colors focus:ring-2 focus:ring-indigo-400/60 focus:outline-none" title="Download sanitized .txt">
+                    ⬇️ Export
+                </button>
+                <button id="shareBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors focus:ring-2 focus:ring-indigo-400/60 focus:outline-none" style="color: var(--text-secondary);" title="Share">
+                    📤 Share
+                </button>
+                <button id="helpBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors focus:ring-2 focus:ring-indigo-400/60 focus:outline-none" style="color: var(--text-secondary);" title="Keyboard shortcuts">
+                    ❓
+                </button>
+            </div>
+        </header>
+
+        <!-- main split-pane -->
+        <div class="split-pane flex gap-5 w-full">
+
+            <!-- LEFT: Source Input -->
+            <div class="flex-1 glass p-0 overflow-hidden flex flex-col min-h-[320px]">
+                <div class="flex items-center justify-between px-5 py-3 border-b" style="border-color: var(--border-color);">
+                    <span class="text-xs font-medium uppercase tracking-wider" style="color: var(--text-secondary);">📄 Source</span>
+                    <span class="text-[10px]" style="color: var(--text-secondary);" id="inputStats">0 chars</span>
+                </div>
+                <div class="flex-1 scrollable relative" id="dropZone">
+                    <textarea id="sourceInput" class="mono-editor" placeholder="Paste or drag &amp; drop .txt .md .csv …" spellcheck="false" autofocus></textarea>
+                    <div id="dragOverlay" class="absolute inset-0 pointer-events-none flex items-center justify-center rounded-b-2xl border-2 border-dashed border-indigo-400/0 transition-all duration-200">
+                        <span class="bg-indigo-500/10 text-indigo-300 px-6 py-3 rounded-xl text-sm font-medium backdrop-blur-sm border border-indigo-400/20 opacity-0 transition-opacity duration-200">Drop to import</span>
+                    </div>
+                </div>
+                <!-- progress bar -->
+                <div class="progress-bar px-4 pb-2">
+                    <div class="fill" id="progressFill" style="width:0%;"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Output Panel -->
+            <div class="flex-1 glass p-0 overflow-hidden flex flex-col min-h-[320px]">
+                <!-- output header + toggle -->
+                <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b" style="border-color: var(--border-color);">
+                    <span class="text-xs font-medium uppercase tracking-wider" style="color: var(--text-secondary);">✨ Sanitized</span>
+                    <div class="seg-toggle" id="viewToggle">
+                        <button class="active" data-view="raw">Raw</button>
+                        <button data-view="markdown">Markdown</button>
+                    </div>
+                </div>
+                <!-- output body -->
+                <div class="flex-1 scrollable relative">
+                    <div id="rawOutput" class="mono-editor whitespace-pre-wrap break-words h-full w-full absolute inset-0 p-4" style="display:block;"></div>
+                    <div id="markdownOutput" class="markdown-body h-full w-full absolute inset-0 overflow-auto" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- metrics & controls row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
+
+            <!-- metrics -->
+            <div class="glass-light p-4 flex flex-wrap items-center justify-between gap-4 lg:col-span-1">
+                <div class="flex flex-wrap gap-4">
+                    <div><span class="metric-label">Words</span><div class="metric-value" id="wordCount">0</div></div>
+                    <div><span class="metric-label">Chars</span><div class="metric-value" id="charCount">0</div></div>
+                    <div><span class="metric-label">Lines</span><div class="metric-value" id="lineCount">0</div></div>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    <div><span class="metric-label">Optimized</span><div class="metric-value text-emerald-300" id="optimizedLines">+0</div></div>
+                    <div><span class="metric-label">Reading</span><div class="metric-value text-sky-300" id="readingTime">0s</div></div>
+                </div>
+            </div>
+
+            <!-- transformation controls -->
+            <div class="glass-light p-4 lg:col-span-2">
+                <div class="chip-group">
+                    <span class="text-xs font-medium uppercase tracking-wide mr-1" style="color: var(--text-secondary);">Transforms</span>
+                    <label class="chip"><input type="checkbox" data-transform="lowercase" /> lowercase</label>
+                    <label class="chip"><input type="checkbox" data-transform="uppercase" /> UPPERCASE</label>
+                    <label class="chip"><input type="checkbox" data-transform="stripDigits" /> strip digits</label>
+                    <label class="chip"><input type="checkbox" data-transform="stripSpecial" /> strip special</label>
+                    <label class="chip"><input type="checkbox" data-transform="slugify" /> slugify</label>
+                    <label class="chip"><input type="checkbox" data-transform="trimLines" /> trim lines</label>
+                    <!-- Dropdown for text transformations -->
+                    <select id="textTransformDropdown" class="dropdown-select">
+                        <option value="none">─ Select ─</option>
+                        <option value="title">Title Case</option>
+                        <option value="sentence">Sentence Case</option>
+                        <option value="camel">camelCase</option>
+                        <option value="pascal">PascalCase</option>
+                        <option value="snake">snake_case</option>
+                        <option value="kebab">kebab-case</option>
+                        <option value="reverse">Reverse Text</option>
+                        <option value="random">Random Case</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Notes & Actions Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+
+            <!-- Save Notes -->
+            <div class="glass-light p-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-secondary);">📝 Save Note</span>
+                    <input id="noteTitleInput" type="text" placeholder="Note title..." class="flex-1 min-w-[120px] px-3 py-1.5 rounded-xl border text-sm" style="background: var(--input-bg); border-color: var(--border-color); color: var(--text-primary);" />
+                    <button id="saveNoteBtn" class="px-4 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-400/20 text-sm font-medium text-indigo-200 hover:bg-indigo-500/30 transition-colors">💾 Save</button>
+                </div>
+                <div class="notes-list mt-3" id="notesList">
+                    <!-- Notes rendered here -->
+                </div>
+            </div>
+
+            <!-- Share -->
+            <div class="glass-light p-4 flex flex-wrap items-center gap-3">
+                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-secondary);">📤 Share</span>
+                <button id="shareTextBtn" class="px-4 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-400/20 text-sm font-medium text-indigo-200 hover:bg-indigo-500/30 transition-colors">Share Text</button>
+                <button id="shareFileBtn" class="px-4 py-1.5 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors" style="color: var(--text-secondary);">Share as File</button>
+                <button id="shareEmailBtn" class="px-4 py-1.5 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors" style="color: var(--text-secondary);">📧 Email</button>
+                <span id="shareStatus" class="text-xs" style="color: var(--text-secondary);"></span>
+            </div>
+
+        </div>
+
+        <!-- footer -->
+        <footer class="mt-6 text-[10px] tracking-wider font-mono border-t pt-4 flex flex-wrap justify-between items-center" style="color: var(--text-secondary); border-color: var(--border-color);">
+            <span>⚡ client-side · no data sent · v3.1</span>
+            <span>Auto-saved <span id="saveStatus">✓</span></span>
+        </footer>
+    </div>
+
+    <!-- FIND/REPLACE MODAL -->
+    <div class="modal-overlay" id="findModal">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">🔍 Find & Replace</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-medium" style="color: var(--text-secondary);">Find</label>
+                    <input id="findInput" type="text" class="w-full mt-1 px-4 py-2 rounded-xl border" style="background: var(--input-bg); border-color: var(--border-color); color: var(--text-primary);" placeholder="Search text…" />
+                </div>
+                <div>
+                    <label class="text-xs font-medium" style="color: var(--text-secondary);">Replace with</label>
+                    <input id="replaceInput" type="text" class="w-full mt-1 px-4 py-2 rounded-xl border" style="background: var(--input-bg); border-color: var(--border-color); color: var(--text-primary);" placeholder="Replacement text…" />
+                </div>
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 text-sm" style="color: var(--text-secondary);">
+                        <input type="checkbox" id="regexCheck" /> Regex
+                    </label>
+                    <label class="flex items-center gap-2 text-sm" style="color: var(--text-secondary);">
+                        <input type="checkbox" id="caseCheck" /> Case sensitive
+                    </label>
+                </div>
+                <div class="flex gap-3 pt-2 flex-wrap">
+                    <button id="findNextBtn" class="px-4 py-2 rounded-xl bg-indigo-500/20 border border-indigo-400/20 text-sm font-medium text-indigo-200 hover:bg-indigo-500/30 transition-colors">Find Next</button>
+                    <button id="replaceBtn" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors" style="color: var(--text-secondary);">Replace</button>
+                    <button id="replaceAllBtn" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors" style="color: var(--text-secondary);">Replace All</button>
+                    <button id="closeFindBtn" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors ml-auto" style="color: var(--text-secondary);">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">⌨️ Keyboard Shortcuts</h3>
+            <div class="space-y-2 text-sm" style="color: var(--text-secondary);">
+                <div class="flex justify-between py-1 border-b" style="border-color: var(--border-color);"><span>Undo</span> <span class="kbd">Ctrl+Z</span></div>
+                <div class="flex justify-between py-1 border-b" style="border-color: var(--border-color);"><span>Redo</span> <span class="kbd">Ctrl+Y</span></div>
+                <div class="flex justify-between py-1 border-b" style="border-color: var(--border-color);"><span>Find & Replace</span> <span class="kbd">Ctrl+F</span></div>
+                <div class="flex justify-between py-1 border-b" style="border-color: var(--border-color);"><span>Copy purified</span> <span class="kbd">Ctrl+Shift+C</span></div>
+                <div class="flex justify-between py-1 border-b" style="border-color: var(--border-color);"><span>Export</span> <span class="kbd">Ctrl+E</span></div>
+                <div class="flex justify-between py-1"><span>Toggle theme</span> <span class="kbd">Ctrl+T</span></div>
+            </div>
+            <button id="closeHelpBtn" class="mt-4 px-6 py-2 rounded-xl bg-indigo-500/20 border border-indigo-400/20 text-sm font-medium text-indigo-200 hover:bg-indigo-500/30 transition-colors w-full">Got it</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+
+            // ─── DOM refs ────────────────────────────────────────────────
+            const source = document.getElementById('sourceInput');
+            const rawOut = document.getElementById('rawOutput');
+            const mdOut = document.getElementById('markdownOutput');
+            const copyBtn = document.getElementById('copyBtn');
+            const copyLabel = document.getElementById('copyLabel');
+            const exportBtn = document.getElementById('exportBtn');
+            const shareBtn = document.getElementById('shareBtn');
+            const shareTextBtn = document.getElementById('shareTextBtn');
+            const shareFileBtn = document.getElementById('shareFileBtn');
+            const shareEmailBtn = document.getElementById('shareEmailBtn');
+            const shareStatus = document.getElementById('shareStatus');
+            const dropZone = document.getElementById('dropZone');
+            const dragOverlay = document.getElementById('dragOverlay');
+            const progressFill = document.getElementById('progressFill');
+
+            const wordEl = document.getElementById('wordCount');
+            const charEl = document.getElementById('charCount');
+            const lineEl = document.getElementById('lineCount');
+            const optEl = document.getElementById('optimizedLines');
+            const readEl = document.getElementById('readingTime');
+            const inputStats = document.getElementById('inputStats');
+            const saveStatus = document.getElementById('saveStatus');
+
+            const viewBtns = document.querySelectorAll('#viewToggle button');
+            const transformCbs = document.querySelectorAll('[data-transform]');
+            const textTransformDropdown = document.getElementById('textTransformDropdown');
+
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            const findBtn = document.getElementById('findBtn');
+            const helpBtn = document.getElementById('helpBtn');
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeLabel = document.getElementById('themeLabel');
+
+            // Notes
+            const noteTitleInput = document.getElementById('noteTitleInput');
+            const saveNoteBtn = document.getElementById('saveNoteBtn');
+            const notesList = document.getElementById('notesList');
+
+            // ─── state ──────────────────────────────────────────────────
+            let currentView = 'raw';
+            let rawText = '';
+            let history = [];
+            let historyIndex = -1;
+            const MAX_HISTORY = 50;
+            let isRestoring = false;
+            let notes = [];
+
+            // ─── theme ──────────────────────────────────────────────────
+            function getTheme() {
+                return document.documentElement.getAttribute('data-theme') || 'dark';
+            }
+
+            function setTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('textpurify-theme', theme);
+                if (theme === 'light') {
+                    themeIcon.textContent = '☀️';
+                    themeLabel.textContent = 'Light';
+                } else {
+                    themeIcon.textContent = '🌙';
+                    themeLabel.textContent = 'Dark';
+                }
+            }
+
+            const savedTheme = localStorage.getItem('textpurify-theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                setTheme('light');
+            }
+
+            themeToggle.addEventListener('click', () => {
+                setTheme(getTheme() === 'dark' ? 'light' : 'dark');
+            });
+
+            // ─── undo/redo history ──────────────────────────────────────
+            function pushHistory(text) {
+                if (isRestoring) return;
+                history = history.slice(0, historyIndex + 1);
+                history.push(text);
+                if (history.length > MAX_HISTORY) history.shift();
+                historyIndex = history.length - 1;
+                updateUndoButtons();
+            }
+
+            function undo() {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    isRestoring = true;
+                    source.value = history[historyIndex];
+                    processText();
+                    isRestoring = false;
+                    updateUndoButtons();
+                }
+            }
+
+            function redo() {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    isRestoring = true;
+                    source.value = history[historyIndex];
+                    processText();
+                    isRestoring = false;
+                    updateUndoButtons();
+                }
+            }
+
+            function updateUndoButtons() {
+                undoBtn.style.opacity = historyIndex > 0 ? '1' : '0.4';
+                redoBtn.style.opacity = historyIndex < history.length - 1 ? '1' : '0.4';
+            }
+
+            // ─── auto-save ──────────────────────────────────────────────
+            function autoSave(text) {
+                try {
+                    localStorage.setItem('textpurify-content', text);
+                    saveStatus.textContent = '✓ saved';
+                    setTimeout(() => { saveStatus.textContent = '✓'; }, 1500);
+                } catch (e) { /* ignore */ }
+            }
+
+            function loadAutoSave() {
+                try {
+                    const saved = localStorage.getItem('textpurify-content');
+                    if (saved) return saved;
+                } catch (e) { /* ignore */ }
+                return null;
+            }
+
+            // ─── Notes ──────────────────────────────────────────────────
+            function loadNotes() {
+                try {
+                    const saved = localStorage.getItem('textpurify-notes');
+                    if (saved) {
+                        notes = JSON.parse(saved);
+                    }
+                } catch (e) { notes = []; }
+                renderNotes();
+            }
+
+            function saveNotes() {
+                try {
+                    localStorage.setItem('textpurify-notes', JSON.stringify(notes));
+                } catch (e) { /* ignore */ }
+                renderNotes();
+            }
+
+            function renderNotes() {
+                if (notes.length === 0) {
+                    notesList.innerHTML =
+                        '<div style="color: var(--text-secondary); font-size: 0.8rem; padding: 8px 0;">No saved notes</div>';
+                    return;
+                }
+                notesList.innerHTML = notes.map((note, i) =>
+                    `<div class="notes-list-item" data-index="${i}">
+                        <span class="note-title" title="${note.title}">${note.title}</span>
+                        <div>
+                            <button class="note-delete" data-index="${i}" title="Load note">📂</button>
+                            <button class="note-delete" data-index="${i}" title="Delete note">✕</button>
+                        </div>
+                    </div>`
+                ).join('');
+
+                // Load note on click
+                notesList.querySelectorAll('.note-title').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const idx = parseInt(this.closest('.notes-list-item').dataset.index);
+                        if (notes[idx]) {
+                            source.value = notes[idx].content;
+                            processText();
+                            shareStatus.textContent = `📂 Loaded: ${notes[idx].title}`;
+                            setTimeout(() => { shareStatus.textContent = ''; }, 2000);
+                        }
+                    });
+                });
+
+                // Load button
+                notesList.querySelectorAll('.note-delete').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const idx = parseInt(this.closest('.notes-list-item').dataset.index);
+                        if (this.textContent === '📂') {
+                            if (notes[idx]) {
+                                source.value = notes[idx].content;
+                                processText();
+                                shareStatus.textContent = `📂 Loaded: ${notes[idx].title}`;
+                                setTimeout(() => { shareStatus.textContent = ''; }, 2000);
+                            }
+                        } else if (this.textContent === '✕') {
+                            if (confirm(`Delete note "${notes[idx].title}"?`)) {
+                                notes.splice(idx, 1);
+                                saveNotes();
+                                shareStatus.textContent = '🗑️ Deleted';
+                                setTimeout(() => { shareStatus.textContent = ''; }, 1500);
+                            }
+                        }
+                    });
+                });
+            }
+
+            saveNoteBtn.addEventListener('click', function() {
+                const title = noteTitleInput.value.trim() || `Note ${notes.length + 1}`;
+                const content = source.value.trim();
+                if (!content) {
+                    shareStatus.textContent = '⚠️ Nothing to save';
+                    setTimeout(() => { shareStatus.textContent = ''; }, 1500);
+                    return;
+                }
+                notes.push({ title, content, timestamp: Date.now() });
+                saveNotes();
+                noteTitleInput.value = '';
+                shareStatus.textContent = '✅ Note saved!';
+                setTimeout(() => { shareStatus.textContent = ''; }, 2000);
+            });
+
+            // Enter key to save note
+            noteTitleInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') saveNoteBtn.click();
+            });
+
+            // ─── text processing pipeline ──────────────────────────────
+            function getTransformFlags() {
+                const flags = {};
+                transformCbs.forEach(cb => {
+                    flags[cb.dataset.transform] = cb.checked;
+                });
+                return flags;
+            }
+
+            // Additional text transformations from dropdown
+            function applyDropdownTransform(text, type) {
+                if (!text || type === 'none') return text;
+
+                switch (type) {
+                    case 'title':
+                        return text.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+                    case 'sentence':
+                        return text.replace(/(^\s*\w|[.!?]\s*\w)/g, (c) => c.toUpperCase());
+                    case 'camel':
+                        return text.replace(/[^a-zA-Z0-9]+(.)/g, (_, c) => c.toUpperCase())
+                            .replace(/^[A-Z]/, (c) => c.toLowerCase());
+                    case 'pascal':
+                        return text.replace(/[^a-zA-Z0-9]+(.)/g, (_, c) => c.toUpperCase())
+                            .replace(/^[a-z]/, (c) => c.toUpperCase());
+                    case 'snake':
+                        return text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+                    case 'kebab':
+                        return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    case 'reverse':
+                        return text.split('').reverse().join('');
+                    case 'random':
+                        return text.split('').map(c => Math.random() > 0.5 ? c.toUpperCase() : c.toLowerCase()).join('');
+                    default:
+                        return text;
+                }
+            }
+
+            function purify(text, flags, dropdownType) {
+                if (!text) return '';
+
+                let t = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                t = t.replace(/[ \t]+/g, ' ');
+
+                let lines = t.split('\n');
+                lines = lines.map(l => l.trim());
+                let collapsed = [];
+                let lastEmpty = false;
+                for (let ln of lines) {
+                    if (ln === '') {
+                        if (!lastEmpty) {
+                            collapsed.push('');
+                            lastEmpty = true;
+                        }
+                    } else {
+                        collapsed.push(ln);
+                        lastEmpty = false;
+                    }
+                }
+                while (collapsed.length > 0 && collapsed[collapsed.length - 1] === '') collapsed.pop();
+
+                let result = collapsed.join('\n');
+
+                if (flags.trimLines) {
+                    result = result.split('\n').map(l => l.trim()).join('\n');
+                }
+
+                if (flags.lowercase) result = result.toLowerCase();
+                if (flags.uppercase) result = result.toUpperCase();
+
+                if (flags.stripDigits) {
+                    result = result.replace(/[0-9]/g, '');
+                }
+
+                if (flags.stripSpecial) {
+                    result = result.replace(/[^a-zA-Z0-9\s\n\-_]/g, '');
+                }
+
+                if (flags.slugify) {
+                    let slugLines = result.split('\n').map(line => {
+                        let s = line.toLowerCase()
+                            .replace(/[^a-z0-9\s-]/g, '')
+                            .trim()
+                            .replace(/[\s-]+/g, '-')
+                            .replace(/^-|-$/g, '');
+                        return s;
+                    });
+                    result = slugLines.join('\n');
+                }
+
+                // Apply dropdown transform after all other transforms
+                if (dropdownType && dropdownType !== 'none') {
+                    result = applyDropdownTransform(result, dropdownType);
+                }
+
+                result = result.trim();
+                return result;
+            }
+
+            // ─── metrics engine ─────────────────────────────────────────
+            function computeMetrics(raw, purified) {
+                const rawLines = raw ? raw.split('\n').length : 0;
+                const purLines = purified ? purified.split('\n').length : 0;
+                const words = purified ? purified.split(/\s+/).filter(w => w.length > 0).length : 0;
+                const chars = purified ? purified.length : 0;
+                const opt = purLines - rawLines;
+                const readingSec = words > 0 ? Math.round((words / 200) * 60) : 0;
+                const mins = Math.floor(readingSec / 60);
+                const secs = readingSec % 60;
+                const readStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+                return { words, chars, rawLines, purLines, opt, readStr };
+            }
+
+            function updateUI(raw, purified) {
+                const m = computeMetrics(raw, purified);
+                wordEl.textContent = m.words;
+                charEl.textContent = m.chars;
+                lineEl.textContent = m.purLines;
+                optEl.textContent = m.opt >= 0 ? `+${m.opt}` : `${m.opt}`;
+                readEl.textContent = m.readStr;
+                inputStats.textContent = `${m.rawLines} lines · ${raw.length} chars`;
+
+                const pct = Math.min(100, (m.words / 500) * 100);
+                progressFill.style.width = pct + '%';
+            }
+
+            // ─── render output ──────────────────────────────────────────
+            function renderOutput(purified) {
+                if (currentView === 'raw') {
+                    rawOut.style.display = 'block';
+                    mdOut.style.display = 'none';
+                    rawOut.textContent = purified || ' ';
+                } else {
+                    rawOut.style.display = 'none';
+                    mdOut.style.display = 'block';
+                    mdOut.innerHTML = renderMarkdown(purified || '');
+                }
+            }
+
+            // ─── lightweight markdown renderer ─────────────────────────
+            function renderMarkdown(md) {
+                if (!md) return '<p style="color:#5f6f85; font-style:italic;">— empty —</p>';
+
+                let html = md;
+                html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
+                    return `<pre><code>${code.replace(/&lt;/g,'<').replace(/&gt;/g,'>')}</code></pre>`;
+                });
+
+                html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+                const tableRegex = /^\s*\|(.+)\|\s*\n\s*\|([\s\-:|]+)\|\s*\n((?:\s*\|.+\|\s*\n?)*)/gm;
+                html = html.replace(tableRegex, function(m, header, sep, rows) {
+                    const headCells = header.split('|').map(c => c.trim()).filter(c => c);
+                    const align = sep.split('|').map(c => c.trim());
+                    let thead = headCells.map((c, i) => {
+                        const a = align[i] || '---';
+                        const cls = a.startsWith(':') && a.endsWith(':') ? 'center' :
+                            a.endsWith(':') ? 'right' : 'left';
+                        return `<th style="text-align:${cls};">${c}</th>`;
+                    }).join('');
+                    let tbody = rows.split('\n').filter(r => r.trim().startsWith('|')).map(row => {
+                        const cells = row.split('|').map(c => c.trim()).filter(c => c);
+                        return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+                    }).join('');
+                    return `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+                });
+
+                html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+                html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+                html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+                html = html.replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>');
+                html = html.replace(/^---$/gm, '<hr/>');
+                html = html.replace(/^[\*\-] (.*)$/gm, '<li>$1</li>');
+                html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+                html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+                html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+                html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+                html = html.replace(/\n/g, '<br/>');
+
+                return `<div>${html}</div>`;
+            }
+
+            // ─── main processing pipeline ──────────────────────────────
+            let processingTimeout = null;
+
+            function processText() {
+                const raw = source.value;
+                rawText = raw;
+                const flags = getTransformFlags();
+                const dropdownType = textTransformDropdown.value;
+                const purified = purify(raw, flags, dropdownType);
+                renderOutput(purified);
+                updateUI(raw, purified);
+
+                clearTimeout(processingTimeout);
+                processingTimeout = setTimeout(() => {
+                    autoSave(raw);
+                    pushHistory(raw);
+                }, 400);
+            }
+
+            // ─── find & replace ────────────────────────────────────────
+            function findAndReplace(find, replace, useRegex, caseSensitive) {
+                const raw = source.value;
+                if (!find) return raw;
+                let flags = 'g';
+                if (!caseSensitive) flags += 'i';
+                let result;
+                try {
+                    if (useRegex) {
+                        const re = new RegExp(find, flags);
+                        result = raw.replace(re, replace);
+                    } else {
+                        if (caseSensitive) {
+                            result = raw.split(find).join(replace);
+                        } else {
+                            const re = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+                            result = raw.replace(re, replace);
+                        }
+                    }
+                } catch (e) {
+                    alert('Invalid regex pattern');
+                    return raw;
+                }
+                return result;
+            }
+
+            // ─── view toggle ────────────────────────────────────────────
+            viewBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    viewBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentView = this.dataset.view;
+                    const flags = getTransformFlags();
+                    const dropdownType = textTransformDropdown.value;
+                    const purified = purify(source.value, flags, dropdownType);
+                    renderOutput(purified);
+                });
+            });
+
+            // ─── transform checkboxes ──────────────────────────────────
+            transformCbs.forEach(cb => {
+                cb.addEventListener('change', processText);
+            });
+
+            // ─── dropdown transform ────────────────────────────────────
+            textTransformDropdown.addEventListener('change', processText);
+
+            // ─── input events ───────────────────────────────────────────
+            source.addEventListener('input', processText);
+            source.addEventListener('paste', function() {
+                setTimeout(processText, 20);
+            });
+
+            // ─── drag & drop ────────────────────────────────────────────
+            let dragCounter = 0;
+
+            dropZone.addEventListener('dragenter', function(e) {
+                e.preventDefault();
+                dragCounter++;
+                if (dragCounter === 1) {
+                    dropZone.classList.add('drag-over');
+                    dragOverlay.querySelector('span').classList.remove('opacity-0');
+                    dragOverlay.querySelector('span').classList.add('opacity-100');
+                }
+            });
+
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                dragCounter--;
+                if (dragCounter === 0) {
+                    dropZone.classList.remove('drag-over');
+                    dragOverlay.querySelector('span').classList.add('opacity-0');
+                    dragOverlay.querySelector('span').classList.remove('opacity-100');
+                }
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dragCounter = 0;
+                dropZone.classList.remove('drag-over');
+                dragOverlay.querySelector('span').classList.add('opacity-0');
+                dragOverlay.querySelector('span').classList.remove('opacity-100');
+
+                const files = e.dataTransfer.files;
+                if (files.length === 0) return;
+                const file = files[0];
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!['txt', 'md', 'csv'].includes(ext)) {
+                    alert('Please drop .txt, .md, or .csv files only.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    source.value = ev.target.result;
+                    processText();
+                };
+                reader.readAsText(file);
+            });
+
+            // ─── copy ────────────────────────────────────────────────────
+            copyBtn.addEventListener('click', function() {
+                const flags = getTransformFlags();
+                const dropdownType = textTransformDropdown.value;
+                const purified = purify(source.value, flags, dropdownType);
+                if (!purified) {
+                    copyLabel.textContent = '⚠️ empty';
+                    setTimeout(() => { copyLabel.textContent = '📋 Copy'; }, 1500);
+                    return;
+                }
+                navigator.clipboard.writeText(purified).then(() => {
+                    copyLabel.textContent = '✅ Copied!';
+                    setTimeout(() => { copyLabel.textContent = '📋 Copy'; }, 2000);
+                }).catch(() => {
+                    copyLabel.textContent = '❌ failed';
+                    setTimeout(() => { copyLabel.textContent = '📋 Copy'; }, 1500);
+                });
+            });
+
+            // ─── export ─────────────────────────────────────────────────
+            exportBtn.addEventListener('click', function() {
+                const flags = getTransformFlags();
+                const dropdownType = textTransformDropdown.value;
+                const purified = purify(source.value, flags, dropdownType);
+                if (!purified) {
+                    alert('Nothing to export — input is empty.');
+                    return;
+                }
+                const now = new Date();
+                const ts =
+                    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+                const blob = new Blob([purified], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `textpurify-${ts}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // ─── Share ──────────────────────────────────────────────────
+            function getPurifiedText() {
+                const flags = getTransformFlags();
+                const dropdownType = textTransformDropdown.value;
+                return purify(source.value, flags, dropdownType);
+            }
+
+            shareTextBtn.addEventListener('click', function() {
+                const text = getPurifiedText();
+                if (!text) {
+                    shareStatus.textContent = '⚠️ Nothing to share';
+                    setTimeout(() => { shareStatus.textContent = ''; }, 1500);
+                    return;
+                }
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'TextPurify Studio',
+                        text: text,
+                    }).catch(() => {});
+                } else {
+                    navigator.clipboard.writeText(text).then(() => {
+                        shareStatus.textContent = '✅ Copied to clipboard!';
+                        setTimeout(() => { shareStatus.textContent = ''; }, 2000);
+                    }).catch(() => {
+                        shareStatus.textContent = '❌ Failed to share';
+                        setTimeout(() => { shareStatus.textContent = ''; }, 1500);
+                    });
+                }
+            });
+
+            shareFileBtn.addEventListener('click', function() {
+                const text = getPurifiedText();
+                if (!text) {
+                    shareStatus.textContent = '⚠️ Nothing to share';
+                    setTimeout(() => { shareStatus.textContent = ''; }, 1500);
+                    return;
+                }
+                const now = new Date();
+                const ts =
+                    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const file = new File([blob], `textpurify-${ts}.txt`, { type: 'text/plain' });
+
+                if (navigator.share && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        title: 'TextPurify Export',
+                        files: [file],
+                    }).catch(() => {});
+                } else {
+                    // Fallback: download
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `textpurify-${ts}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    shareStatus.textContent = '📥 File downloaded';
+                    setTimeout(() => { shareStatus.textContent = ''; }, 2000);
+                }
+            });
+
+            shareEmailBtn.addEventListener('click', function() {
+                const text = getPurifiedText();
+                if (!text) {
+                    shareStatus.textContent = '⚠️ Nothing to share';
+                    setTimeout(() => { shareStatus.textContent = ''; }, 1500);
+                    return;
+                }
+                const subject = encodeURIComponent('Text from TextPurify Studio');
+                const body = encodeURIComponent(text.slice(0, 2000) + (text.length > 2000 ? '\n\n... (truncated)' : ''));
+                window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                shareStatus.textContent = '📧 Email client opened';
+                setTimeout(() => { shareStatus.textContent = ''; }, 2000);
+            });
+
+            shareBtn.addEventListener('click', function() {
+                shareTextBtn.click();
+            });
+
+            // ─── undo/redo ──────────────────────────────────────────────
+            undoBtn.addEventListener('click', undo);
+            redoBtn.addEventListener('click', redo);
+
+            // ─── find modal ─────────────────────────────────────────────
+            const findModal = document.getElementById('findModal');
+            const findInput = document.getElementById('findInput');
+            const replaceInput = document.getElementById('replaceInput');
+            const regexCheck = document.getElementById('regexCheck');
+            const caseCheck = document.getElementById('caseCheck');
+
+            function openFind() {
+                findModal.classList.add('open');
+                findInput.focus();
+                findInput.select();
+            }
+
+            findBtn.addEventListener('click', openFind);
+
+            document.getElementById('closeFindBtn').addEventListener('click', () => {
+                findModal.classList.remove('open');
+            });
+
+            findModal.addEventListener('click', (e) => {
+                if (e.target === findModal) findModal.classList.remove('open');
+            });
+
+            document.getElementById('findNextBtn').addEventListener('click', () => {
+                const find = findInput.value;
+                const raw = source.value;
+                if (!find) return;
+                const flags = 'g' + (caseCheck.checked ? '' : 'i');
+                let re;
+                try {
+                    re = new RegExp(regexCheck.checked ? find : find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+                } catch (e) { alert('Invalid regex'); return; }
+                const match = re.exec(raw);
+                if (match) {
+                    source.focus();
+                    source.setSelectionRange(match.index, match.index + match[0].length);
+                } else {
+                    alert('No matches found');
+                }
+            });
+
+            document.getElementById('replaceBtn').addEventListener('click', () => {
+                const raw = source.value;
+                const find = findInput.value;
+                const replace = replaceInput.value;
+                if (!find) return;
+                const result = findAndReplace(find, replace, regexCheck.checked, caseCheck.checked);
+                if (result !== raw) {
+                    source.value = result;
+                    processText();
+                } else {
+                    alert('No matches found');
+                }
+            });
+
+            document.getElementById('replaceAllBtn').addEventListener('click', () => {
+                const raw = source.value;
+                const find = findInput.value;
+                const replace = replaceInput.value;
+                if (!find) return;
+                const result = findAndReplace(find, replace, regexCheck.checked, caseCheck.checked);
+                if (result !== raw) {
+                    source.value = result;
+                    processText();
+                } else {
+                    alert('No matches found');
+                }
+            });
+
+            // ─── help modal ─────────────────────────────────────────────
+            const helpModal = document.getElementById('helpModal');
+
+            helpBtn.addEventListener('click', () => {
+                helpModal.classList.add('open');
+            });
+
+            document.getElementById('closeHelpBtn').addEventListener('click', () => {
+                helpModal.classList.remove('open');
+            });
+
+            helpModal.addEventListener('click', (e) => {
+                if (e.target === helpModal) helpModal.classList.remove('open');
+            });
+
+            // ─── keyboard shortcuts ─────────────────────────────────────
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
+                    e.preventDefault();
+                    undo();
+                }
+                if (e.ctrlKey && e.key === 'y') {
+                    e.preventDefault();
+                    redo();
+                }
+                if (e.ctrlKey && e.key === 'f') {
+                    e.preventDefault();
+                    openFind();
+                }
+                if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                    e.preventDefault();
+                    copyBtn.click();
+                }
+                if (e.ctrlKey && e.key === 'e') {
+                    e.preventDefault();
+                    exportBtn.click();
+                }
+                if (e.ctrlKey && e.key === 't') {
+                    e.preventDefault();
+                    themeToggle.click();
+                }
+                if (e.key === 'Escape') {
+                    findModal.classList.remove('open');
+                    helpModal.classList.remove('open');
+                }
+            });
+
+            // ─── init ───────────────────────────────────────────────────
+            loadNotes();
+
+            const savedContent = loadAutoSave();
+            if (savedContent) {
+                source.value = savedContent;
+            } else {
+                source.value =
+                    `# Welcome to TextPurify Studio Pro v3.1  
+
+Paste your text here, or drag & drop a .txt .md .csv file.
+
+✨ New features:
+• Dark/Light theme (Ctrl+T)
+• Undo/Redo (Ctrl+Z / Ctrl+Y)
+• Find & Replace (Ctrl+F)
+• Auto-save to localStorage
+• Dropdown text transforms (Title, Sentence, camelCase, etc.)
+• Save notes locally with titles
+• Share: text, file, or email
+
+Try the transformation toggles below — they update instantly.
+
+| Feature | Status |
+|---------|--------|
+| Purify | ✅ |
+| Markdown | ✅ |
+| Export | ✅ |
+| Auto-save | ✅ |
+| Notes | ✅ |
+| Share | ✅ |
+
+> “Clean data, clear mind.”`;
+            }
+
+            processText();
+            pushHistory(source.value);
+
+            setTimeout(() => { saveStatus.textContent = '✓'; }, 500);
+
+            window.addEventListener('beforeunload', () => {
+                autoSave(source.value);
+            });
+
+        })();
+    </script>
+
+</body>
+</html>
